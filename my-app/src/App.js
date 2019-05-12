@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import ReactDOM from "react-dom";
 import moment from "moment";
 import axios from "axios";
-import DatePicker from "./components/datePicker";
+import DatePicker from "./components/DatePicker";
+import 'moment/locale/ru'
+moment.locale('ru')
 //import './App.css';
 
 const INITIAL_STATE = {
