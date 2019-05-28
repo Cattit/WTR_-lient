@@ -1,35 +1,95 @@
-import React, { Component } from 'react';
-import ReactDOM from "react-dom";
-import moment from "moment";
+import React, { Component } from "react";
 import axios from "axios";
 import DatePicker from "./components/DatePicker";
-import 'moment/locale/ru'
-moment.locale('ru')
+import Table from "./components/Table";
+import { Formik, Field } from "formik";
+import moment from 'moment';
+
 //import './App.css';
 
+// Checkbox input
+const Checkbox = ({
+  field: { name, value, onChange },
+  id,
+  label,
+  className,
+  ...props
+}) => {
+  return (
+    <div>
+      <input
+        name={name}
+        id={id}
+        type="checkbox"
+        value={value}
+        checked={value}
+        onChange={onChange}
+      />
+      <label htmlFor={id}>{label}</label>
+    </div>
+  );
+};
+
+// Checkbox group
+class CheckboxGroup extends Component {
+  handleChange = event => {
+    const target = event.currentTarget;
+    let valueArray = [...this.props.value] || [];
+
+    if (target.checked) {
+      valueArray.push(target.id);
+    } else {
+      valueArray.splice(valueArray.indexOf(target.id), 1);
+    }
+
+    this.props.onChange(this.props.id, valueArray);
+  };
+
+  render() {
+    const { value, label, children } = this.props;
+
+    return (
+      <div>
+        <fieldset>
+          <legend>{label}</legend>
+          {React.Children.map(children, child => {
+            return React.cloneElement(child, {
+              field: {
+                value: value.includes(child.props.id),
+                onChange: this.handleChange
+              }
+            });
+          })}
+        </fieldset>
+      </div>
+    );
+  }
+}
+/*
 const INITIAL_STATE = {
-  dateFrom: new moment(),
-  dateTo: new moment(),
+  dateStart: new moment(),
+  dateEnd: new moment(),
   gismeteo: false,
   yandex: false,
   accuWeather: false,
   oneDay: false,
   threeDay: false,
-  fiveDay: false
+  fiveDay: false,
+  masMark: [],
 }
 
-class App extends React.Component {
+class App extends Component {
   constructor(props) {
     super(props);
     this.state = INITIAL_STATE
   }
 
-  onDateFromChange = date => {
-    this.setState({ dateFrom: date });
+  onDateStartChange = date => {
+    this.setState({ dateStart: date });
   };
 
-  onDateToChange = date => {
-    this.setState({ dateTo: date });
+  onDateEndChange = date => {
+    this.setState({ dateEnd: date });
   };
 
   onCheckboxChange = event => {
@@ -37,12 +97,14 @@ class App extends React.Component {
   };
 
   onClickSendData = async () => {
-    await axios.post("http://localhost:5000/sendUserData", this.state);
-    this.setState(INITIAL_STATE)
+    const {data} = await axios.post("http://localhost:5000/sendUserData", this.state);
+
+    this.setState(INITIAL_STATE);
+    this.setState({ masMark: data});
   };
 
   render() {
-    const { gismeteo, yandex, accuWeather, oneDay, threeDay, fiveDay, dateFrom, dateTo } = this.state;
+    const { masMark, gismeteo, yandex, accuWeather, oneDay, threeDay, fiveDay, dateStart, dateEnd } = this.state;
     return (
       <div className="App">
         <header className="App-header">
@@ -65,8 +127,8 @@ class App extends React.Component {
             Выберите интервал:
           </p>
           <div>
-            <DatePicker value={dateFrom} onChange={this.onDateFromChange} />
-            <DatePicker value={dateTo} onChange={this.onDateToChange} />
+            <DatePicker value={dateStart} onChange={this.onDateStartChange} />
+            <DatePicker value={dateEnd} onChange={this.onDateEndChange} />
           </div>
           <p>
             <button type="button" onClick={this.onClickSendData}>
@@ -74,9 +136,84 @@ class App extends React.Component {
             </button>
           </p>
         </header>
+        <Table data={masMark} />
       </div>
     )
   }
 }
+*/
+
+const App = () => (
+  <div className="App">
+    <h1>Статистика точности сайтов прогнозов погоды по Иркутской области</h1>
+    <Formik
+      initialValues={{
+        sources: [],
+        depths: [],
+        dateStart: new moment().format('DD-MM-YYYY'),
+        dateEnd: new moment().format('DD-MM-YYYY'),
+      }}
+
+
+      onSubmit={async (values, actions) => {
+        await axios.post('http://localhost:5000/sendUserData', values)
+        // req.body.depths, req.body.sources, req.body.dateStart, req.body.dateEnd
+        console.log(JSON.stringify(values, null, 2));
+        actions.setSubmitting(false);
+      }}
+
+      render={({ handleSubmit, setFieldValue, values, isSubmitting }) => (
+        <form onSubmit={handleSubmit}>
+          <h2>Выберите глубину прогноза</h2>
+          <CheckboxGroup
+            id="depths"
+            label="Выберите глубину прогноза"
+            value={values.depths}
+            onChange={setFieldValue}
+          >
+            <Field component={Checkbox} name="depths" id="1" label="1 день" />
+            <Field component={Checkbox} name="depths" id="3" label="3 дня" />
+            <Field component={Checkbox} name="depths" id="5" label="5 дней" />
+          </CheckboxGroup>
+          <h2>Выберите сервис</h2>
+          <CheckboxGroup
+            id="sources"
+            label="Выберите сервис"
+            value={values.sources}
+            onChange={setFieldValue}
+          >
+            <Field
+              component={Checkbox}
+              name="sources"
+              id="gismeteo"
+              label="Gismeteo"
+            />
+            <Field
+              component={Checkbox}
+              name="sources"
+              id="yandex"
+              label="Yandex"
+            />
+            <Field
+              component={Checkbox}
+              name="sources"
+              id="accuWeather"
+              label="AccuWeather"
+            />
+          </CheckboxGroup>
+          <h2>Выберите интервал:</h2>
+          <div>
+            <Field component={DatePicker} name='dateStart' />
+            <Field component={DatePicker} name='dateEnd' />
+          </div>
+          <button type="submit" disabled={isSubmitting}>
+            Показать оценку
+          </button>
+          <Table sources={values.sources} depth={values.depths} />
+        </form>
+      )}
+    />
+  </div>
+);
 
 export default App;
