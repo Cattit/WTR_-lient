@@ -3,7 +3,7 @@ import Datetime from "react-datetime";
 import moment from 'moment';
 import 'moment/locale/ru';
 
-const DATE_FORMAT = 'DD-MM-YYYY'
+const DATE_FORMAT = 'YYYY-MM-DD'
 
 const DatePicker = ({ field, form, ...rest }) => {
     const handleChange = value => {
@@ -17,9 +17,9 @@ const DatePicker = ({ field, form, ...rest }) => {
 
     return (
         <div>
-            <Datetime {...rest} id={field.name} name={field.name} dateFormat={DATE_FORMAT} defaultValue={new moment().format('DD-MM-YYYY')} timeFormat={false} onChange={handleChange} />
-        </div>  
+            <Datetime {...rest} id={field.name} name={field.name} dateFormat={DATE_FORMAT} defaultValue={new moment().format('YYYY-MM-DD')} timeFormat={false} onChange={handleChange} />
+        </div>
     );
-} 
+}
 
 export default DatePicker
