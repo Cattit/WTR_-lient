@@ -1,8 +1,12 @@
 import React, { Component, useState } from "react";
 import axios from "axios";
 import Form from "react-bootstrap/Form";
+import Button from "react-bootstrap/Button";
+import Container from "react-bootstrap/Container";
+import Col from "react-bootstrap/Col";
 import DatePicker from "./components/DatePicker";
 import Table from "./components/Table";
+import Chart from "./components/Chart";
 import { Formik, Field } from "formik";
 import moment from 'moment';
 import './App.css';
@@ -16,17 +20,14 @@ const Checkbox = ({
   ...props
 }) => {
   return (
-    <div>
-      <input
-        name={name}
-        id={id}
-        type="checkbox"
-        value={value}
-        checked={value}
-        onChange={onChange}
-      />
-      <label htmlFor={id}>{label}</label>
-    </div>
+    <Form.Check
+      name={name}
+      id={id}
+      label={label}
+      value={value}
+      checked={value}
+      onChange={onChange}
+    />
   );
 };
 
@@ -46,30 +47,25 @@ class CheckboxGroup extends Component {
   };
 
   render() {
-    const { value, label, children } = this.props;
+    const { value, children } = this.props;
 
     return (
-      <div>
-        <fieldset>
-          <legend>{label}</legend>
-          {React.Children.map(children, child => {
-            return React.cloneElement(child, {
-              field: {
-                value: value.includes(child.props.id),
-                onChange: this.handleChange
-              }
-            });
-          })}
-        </fieldset>
-      </div>
+      React.Children.map(children, child => {
+        return React.cloneElement(child, {
+          field: {
+            value: value.includes(child.props.id),
+            onChange: this.handleChange
+          }
+        })
+      })
     );
   }
 }
 
 const App = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(null);
   return (
-    <div className="App">
+    <Container>
       <h1>Статистика точности сайтов прогнозов погоды по Иркутской области</h1>
       <Formik
         initialValues={{
@@ -81,64 +77,89 @@ const App = () => {
 
 
         onSubmit={async (values, actions) => {
-          const { data } = await axios.post('http://localhost:5000/sendUserData', values)
-          setData(data);
-          actions.setSubmitting(false);
+          try {
+            const { data } = await axios.post('http://localhost:5000/sendUserData', values)
+            setData(data);
+          } catch (error) {
+            console.error(error)
+          }
+          finally {
+            actions.setSubmitting(false);
+          }
         }}
 
         render={({ handleSubmit, setFieldValue, values, isSubmitting }) => (
           <Form onSubmit={handleSubmit}>
-            <h2>Выберите глубину прогноза</h2>
-            <CheckboxGroup
-              id="depths"
-              label="Выберите глубину прогноза"
-              value={values.depths.sort()}
-              onChange={setFieldValue}
-            >
-              <Field component={Checkbox} name="depths" id="1" label="1 день" />
-              <Field component={Checkbox} name="depths" id="3" label="3 дня" />
-              <Field component={Checkbox} name="depths" id="5" label="5 дней" />
-            </CheckboxGroup>
-            <h2>Выберите сервис</h2>
-            <CheckboxGroup
-              id="sources"
-              label="Выберите сервис"
-              value={values.sources.sort()}
-              onChange={setFieldValue}
-            >
-              <Field
-                component={Checkbox}
-                name="sources"
-                id="Gismeteo"
-                label="Gismeteo"
-              />
-              <Field
-                component={Checkbox}
-                name="sources"
-                id="Yandex"
-                label="Yandex"
-              />
-              <Field
-                component={Checkbox}
-                name="sources"
-                id="AccuWeather"
-                label="AccuWeather"
-              />
-            </CheckboxGroup>
-            <h2>Выберите интервал:</h2>
-            <div>
-              <Field component={DatePicker} name='dateStart' />
-              <Field component={DatePicker} name='dateEnd' />
-            </div>
-            <button type="submit" disabled={isSubmitting}>
+            <Form.Row>
+              <Col>
+                <Form.Group controlId="form.depths">
+                  <Form.Label>Выберите глубину прогноза</Form.Label>
+                  <CheckboxGroup
+                    id="depths"
+                    value={values.depths.sort()}
+                    onChange={setFieldValue}
+                  >
+                    <Field component={Checkbox} name="depths" id="1" label="1 день" />
+                    <Field component={Checkbox} name="depths" id="3" label="3 дня" />
+                    <Field component={Checkbox} name="depths" id="5" label="5 дней" />
+                  </CheckboxGroup>
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group controlId="form.sources">
+                  <Form.Label>Выберите сервис</Form.Label>
+                  <CheckboxGroup
+                    id="sources"
+                    label="Выберите сервис"
+                    value={values.sources.sort()}
+                    onChange={setFieldValue}
+                  >
+                    <Field
+                      component={Checkbox}
+                      name="sources"
+                      id="Gismeteo"
+                      label="Gismeteo"
+                    />
+                    <Field
+                      component={Checkbox}
+                      name="sources"
+                      id="Yandex"
+                      label="Yandex"
+                    />
+                    <Field
+                      component={Checkbox}
+                      name="sources"
+                      id="AccuWeather"
+                      label="AccuWeather"
+                    />
+                  </CheckboxGroup>
+                </Form.Group>
+              </Col>
+            </Form.Row>
+            <Form.Label>Выберите интервал</Form.Label>
+            <Form.Group controlId="form.dateInterval">
+              <Form.Row >
+                <Col xs lg={2}>
+                  <Field component={DatePicker} name='dateStart' />
+                </Col>
+                <Col xs lg={2}>
+                  <Field component={DatePicker} name='dateEnd' />
+                </Col>
+              </Form.Row>
+            </Form.Group>
+            <Button variant="primary" type="submit" disabled={isSubmitting}>
               Показать оценку
-          </button>
-            {data.length > 0 && <Table data={data} sources={values.sources} depth={values.depths} />}
+          </Button >
+            <Form.Group>
+              {data && <Table id="collapse-table" data={data} />}
+            </Form.Group>
+            <Form.Group>
+              {data && <Chart id="collapse-chart" data={data} />}
+            </Form.Group>
           </Form>
         )}
       />
-    </div>
-  );
+    </Container>);
 }
 
-export default App;
+export default App; 

@@ -2,6 +2,7 @@ import React from "react";
 import Datetime from "react-datetime";
 import moment from 'moment';
 import 'moment/locale/ru';
+import './DatePicker.css'
 
 const DATE_FORMAT = 'YYYY-MM-DD'
 
